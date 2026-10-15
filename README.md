@@ -27,7 +27,7 @@ cd salesforce-catalog-sync
 
 Copy `src/main/resources/config-example.yaml` to `config.yaml` and `secure-properties-example.yaml` to `secure-properties.yaml` in the same directory. The example encrypted values are placeholders for mocked tests; replace them with your own encrypted credentials before running live integrations. The development encryption key is configured in `salesforce.xml`; override it and regenerate encrypted values for your deployment.
 
-The default MUnit suites mock external connections and do not send real emails or write Salesforce products. With JDK 17 and Maven configured, run `mvn test` to execute all 41 tests. Open `target/site/munit/coverage/summary.html` for coverage.
+The default MUnit suites mock external connections and do not send real emails or write Salesforce products. With JDK 17 and Maven configured, run `mvn test` to execute all 42 tests. Open `target/site/munit/coverage/summary.html` for coverage.
 
 For cloud deployment, follow [CloudHub 2.0 setup](deployment/CLOUDHUB2.md) and [Aiven setup](deployment/AIVEN.md). GitHub stores the project source; the application runs in Mule or CloudHub.
 
@@ -231,7 +231,7 @@ SELECT * FROM product_sync_log ORDER BY log_seq DESC LIMIT 10;
 
 1. **Mule Domain Application**: Not required. The application runs as a standalone deployment managing its own listener configuration on `http://0.0.0.0:8081` without port sharing requirements.
 2. **API Autodiscovery**: Optional. Configure API Manager separately if policies or managed API analytics are required. The catalog synchronization endpoints run without API autodiscovery.
-3. **SMTP Delivery**: Reusable HTML summary is compiled by `run-summary-email.dwl`. Delivery is disabled (`smtp.enabled: false`) until valid host credentials are provided.
+3. **SMTP Delivery**: Reusable plain-text summary is compiled by `run-summary-email.dwl`. Delivery is disabled (`smtp.enabled: false`) until valid host credentials are provided.
 
 ## Local development verification
 
@@ -255,8 +255,8 @@ Expected API behavior:
 
 Run IDs use UUIDs to prevent collisions. Product retrieval no longer truncates the catalog at 200 rows. Price-book lookup preserves the product list and both price-book IDs. Fatal processing errors mark the run `FAILED` when the database is reachable. Rejections are written under `target/rejects` relative to the launch working directory.
 
-SMTP is disabled by default. To enable it, configure the SMTP settings and supply `-Dsmtp.password=<password>` through your launch configuration. `SENT` is recorded only after the email connector completes; a transport failure records `FAILED`.
-The verified Studio `salesforce` regression build contains 41 tests (36 flow tests and 5 real HTTP checks), with 0 failures and 0 errors and 100.00% processor coverage (168 / 168). See [verified test results](docs/test-results.md) for the regression summary. The added SMTP failure test confirms notification failures are recorded without interrupting catalog finalization.
+SMTP is disabled by default. Configure Gmail STARTTLS, an encrypted App Password, and the sender/recipient settings as described in [email configuration](deployment/EMAIL.md). `SENT` is recorded only after the email connector completes; exhausted delivery attempts record `PENDING_RETRY` without changing the catalog run outcome. Nonempty rejects are attached as CSV.
+The verified Studio `salesforce` regression build contains 42 tests (37 flow tests and 5 real HTTP checks), with 0 failures and 0 errors and 100.00% processor coverage (170 / 170). See [verified test results](docs/test-results.md) for the regression summary. The added SMTP failure test confirms notification failures are recorded without interrupting catalog finalization.
 
 To verify real external connections separately, run `./scripts/check-connections.ps1`. It reads the ERP catalog, retrieves Salesforce price-book IDs, and submits an audited partial sync for a deliberately nonmatching product code. This adds a verification row to `sync_run` and does not modify Salesforce products. Default unit tests do not depend on live credentials.
 

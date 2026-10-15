@@ -10,7 +10,8 @@ var r = vars.runSummaryData default {}
 "Run Status: " ++ (r.status default "unknown") ++ "\n" ++
 "Duration: " ++ ((r.durationSeconds default 0) as String) ++ " seconds\n" ++
 "Records Read: " ++ ((r.recordsRead default 0) as String) ++ "\n" ++
-"Products Created/Updated: " ++ ((r.createdCount default 0) as String) ++ "\n" ++
+"Products Created: " ++ ((r.createdCount default 0) as String) ++ "\n" ++
+"Products Updated: " ++ ((r.updatedCount default 0) as String) ++ "\n" ++
 "Products Deactivated: " ++ ((r.deactivatedCount default 0) as String) ++ "\n" ++
 "Records Retried: " ++ ((r.retriedCount default 0) as String) ++ "\n" ++
 "Permanent Failures: " ++ ((r.failedCount default 0) as String) ++ "\n" ++

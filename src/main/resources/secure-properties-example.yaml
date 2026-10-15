@@ -1,7 +1,5 @@
 # Mock-test placeholders encrypted with the public development key in salesforce.xml.
-# Replace these values with your own encrypted credentials for live integrations.
-db:
-  password: "![jkuwImiBvwyH4zEIwwUjhP1geLooXeoZ]"
-salesforce:
-  password: "![jkuwImiBvwwTKSy6cmK77ytAbe/pNwnk1b5J3nkrdT0=]"
-  securityToken: "![jkuwImiBvwwTKSy6cmK773SGdiaAYmwzFWGUnMmNxU7hZpbtihj6sA==]"
+# Replace with your own encrypted credentials for live integrations.
+db: {password: '![jkuwImiBvwyH4zEIwwUjhP1geLooXeoZ]'}
+salesforce: {password: '![jkuwImiBvwwTKSy6cmK77ytAbe/pNwnk1b5J3nkrdT0=]', securityToken: '![jkuwImiBvwwTKSy6cmK773SGdiaAYmwzFWGUnMmNxU7hZpbtihj6sA==]'}
+smtp: {password: '![sgdKwv/d4u+OsYGGZV91fuMHS0Jp5e+K]'}

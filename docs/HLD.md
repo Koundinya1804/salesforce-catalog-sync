@@ -130,7 +130,7 @@ flowchart TD
 #### System Layer
 8. `sys-file-write-rejects-csv-flow`: Generates `CATALOG_REJECTS_<runId>.csv` in `C:/temp/rejects` with audit columns for any rejected records.
 9. `sys-sfdc-create-exception-case-flow`: Creates a single consolidated Salesforce `Case` with priority `High` summarizing run rejections and persists the resulting `CaseNumber`.
-10. `sys-email-send-summary-flow`: Compiles an HTML run execution summary using `run-summary-email.dwl` and transmits notification via SMTP if enabled.
+10. `sys-email-send-summary-flow`: Compiles a plain-text run execution summary using `run-summary-email.dwl` and transmits notification via SMTP if enabled.
 11. `system-db-check-active-run-flow`: Executes SQL query against `sync_run` to detect concurrent active syncs.
 12. `system-db-create-sync-run-flow`: Inserts initial audit record into `sync_run` table (`RUNNING` status).
 13. `system-db-update-sync-run-flow`: Updates `sync_run` with final counts (`created_count`, `updated_count`, `deactivated_count`, `failed_count`, `run_status`, `sf_case_number`, `rejects_file`, `completed_at`).
@@ -351,6 +351,6 @@ flowchart TD
 | **Delta Watermark** | **Implemented & Tested** | Object Store tracked; conditional advancement verified. |
 | **Rejects CSV Export** | **Implemented & Tested** | Generates `CATALOG_REJECTS_<runId>.csv` in `C:/temp/rejects`. |
 | **Salesforce Exception Case** | **Implemented & Tested** | Creates Case in Salesforce; verified `CaseNumber = 00001027`. |
-| **MUnit Test Suite** | **Implemented & Tested** | 41 regression tests passing with **100%** verified processor coverage (168 / 168). |
+| **MUnit Test Suite** | **Implemented & Tested** | 42 regression tests passing with **100%** verified processor coverage (170 / 170). |
 | **API Autodiscovery** | **Configured** | Configured in `salesforce.xml` with externalized ID `api.autodiscovery.id`. Requires live Anypoint Platform client credentials to bind to API Manager in cloud. |
-| **SMTP Email Delivery** | **Configured & Formatted** | DataWeave HTML template complete; actual SMTP dispatch disabled until real mail host credentials are provided. |
+| **SMTP Email Delivery** | **Configured & Formatted** | Plain-text summary, rejects CSV attachments, required STARTTLS and bounded retries implemented; real Gmail delivery verified separately. CloudHub SMTP remains opt-in. |

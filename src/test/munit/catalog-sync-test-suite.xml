@@ -1342,7 +1342,8 @@
 			<flow-ref name="sys-email-send-summary-flow" doc:name="Call Email Summary Flow" />
 		</munit:execution>
 		<munit:validation>
-			<munit-tools:assert-equals actual="#[vars.emailStatus]" expected="#['SENT']" message="Email status should be SENT" />
+			<munit-tools:assert-that expression="#[isEmpty(vars.emailAttachments)]" is="#[MunitTools::equalTo(true)]" />
+            <munit-tools:assert-equals actual="#[vars.emailStatus]" expected="#['SENT']" message="Email status should be SENT" />
 			<munit-tools:verify-call processor="email:send" times="1" />
 		</munit:validation>
 	</munit:test>
@@ -1390,9 +1391,46 @@
       <set-variable variableName="continuedAfterEmail" value="#[true]" />
     </munit:execution>
     <munit:validation>
-      <munit-tools:assert-equals actual="#[vars.emailStatus]" expected="#['FAILED']" message="Failed email must not be reported as SENT" />
+      <munit-tools:assert-equals actual="#[vars.emailStatus]" expected="#['PENDING_RETRY']" message="Failed email must not be reported as SENT" />
       <munit-tools:assert-equals actual="#[vars.continuedAfterEmail]" expected="#[true]" message="An email failure must allow run finalization to continue" />
       <munit-tools:assert-equals actual="#[vars.failedCount]" expected="#[0]" message="Notification failure must not change product failure metrics" />
+      <munit-tools:verify-call processor="email:send" times="3" />
+    </munit:validation>
+  </munit:test>
+
+  <munit:test name="test-system-email-summary-rejects-attachment" description="Summary separates counts and includes a CSV attachment for permanent failures">
+    <munit:behavior><munit-tools:mock-when processor="email:send" /></munit:behavior>
+    <munit:execution>
+      <munit:set-event>
+        <munit:variables>
+          <munit:variable key="runId" value="#['RUN-EMAIL-ATTACHMENT']" />
+          <munit:variable key="triggerType" value="#['MANUAL_API']" />
+          <munit:variable key="scope" value="#['FULL']" />
+          <munit:variable key="recordsRead" value="#[4]" />
+          <munit:variable key="createdCount" value="#[1]" />
+          <munit:variable key="updatedCount" value="#[1]" />
+          <munit:variable key="deactivatedCount" value="#[1]" />
+          <munit:variable key="retriedCount" value="#[2]" />
+          <munit:variable key="failedCount" value="#[1]" />
+          <munit:variable key="runDurationSeconds" value="#[20]" />
+          <munit:variable key="sfCaseNumber" value="#['00000123']" />
+          <munit:variable key="rejectsFileName" value="#['CATALOG_REJECTS_RUN-EMAIL-ATTACHMENT.csv']" />
+          <munit:variable key="rejectsFilePath" value="#['/tmp/CATALOG_REJECTS_RUN-EMAIL-ATTACHMENT.csv']" />
+          <munit:variable key="rejectRecords" value="#[[{erpCode: 'PRD-CBL-007', operation: 'VALIDATE', errorCode: 'MISSING_PRODUCT_NAME', errorMessage: 'Name is missing, rejected', retryCount: 0}]]" />
+          <munit:variable key="correlationId" value="#['corr-email-attachment']" />
+          <munit:variable key="forceEmailSent" value="#[true]" />
+        </munit:variables>
+      </munit:set-event>
+      <flow-ref name="sys-email-send-summary-flow" />
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-equals actual="#[vars.emailStatus]" expected="#['SENT']" />
+      <munit-tools:assert-that expression="#[output application/java --- (payload as String) contains 'Products Created: 1']" is="#[MunitTools::equalTo(true)]" />
+      <munit-tools:assert-that expression="#[output application/java --- (payload as String) contains 'Products Updated: 1']" is="#[MunitTools::equalTo(true)]" />
+      <munit-tools:assert-that expression="#[output application/java --- (payload as String) contains 'Salesforce Case Number: 00000123']" is="#[MunitTools::equalTo(true)]" />
+      <munit-tools:assert-equals actual="#[output application/java --- sizeOf(vars.emailAttachments)]" expected="#[1]" />
+      <munit-tools:assert-equals actual="#[read(vars.emailAttachments['CATALOG_REJECTS_RUN-EMAIL-ATTACHMENT.csv'], 'application/csv')[0].erpCode]" expected="#['PRD-CBL-007']" />
+      <munit-tools:assert-equals actual="#[read(vars.emailAttachments['CATALOG_REJECTS_RUN-EMAIL-ATTACHMENT.csv'], 'application/csv')[0].errorMessage]" expected="#['Name is missing, rejected']" />
       <munit-tools:verify-call processor="email:send" times="1" />
     </munit:validation>
   </munit:test>
