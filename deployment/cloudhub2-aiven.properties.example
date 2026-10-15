@@ -1,0 +1,10 @@
+http.host=0.0.0.0
+config.file=config-aiven.yaml
+secure.config.file=secure-properties-aiven.yaml
+db.sslMode=VERIFY_IDENTITY
+vm.queueType=TRANSIENT
+file.rejectsPath=/tmp/catalog-sync/rejects
+smtp.enabled=false
+# Use only after scripts/configure-aiven.ps1 succeeds and the JAR is rebuilt.
+# Set encryption.key to the key matching secure-properties-aiven.yaml and protect it.
+# Do not add a plaintext database password. The archive holds the encrypted value.

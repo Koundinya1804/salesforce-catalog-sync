@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools" xmlns:http="http://www.mulesoft.org/schema/mule/http" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+  <munit:config name="live-connection-checks.xml" /><http:request-config name="Live_HTTP_Client"><http:request-connection host="127.0.0.1" port="${http.port}" /></http:request-config>
+  <munit:test name="test-live-mysql-product-query">
+    <munit:execution>
+      <set-variable variableName="watermarkFrom" value="1971-01-01 00:00:00" />
+      <flow-ref name="system-db-read-products-flow" />
+      <logger level="INFO" message="#['[LIVE CHECK] MySQL query succeeded; product rows: ' ++ sizeOf(payload)]" />
+    </munit:execution>
+    <munit:validation><munit-tools:assert-equals actual="#[payload is Array]" expected="#[true]" /></munit:validation>
+  </munit:test>
+  <munit:test name="test-live-salesforce-pricebooks">
+    <munit:execution><set-payload value="#[[]]" /><flow-ref name="system-sfdc-get-pricebooks-flow" /></munit:execution>
+    <munit:validation>
+      <munit-tools:assert-equals actual="#[!isEmpty(vars.standardPriceBookId)]" expected="#[true]" />
+      <munit-tools:assert-equals actual="#[!isEmpty(vars.customPriceBookId)]" expected="#[true]" />
+    </munit:validation>
+  </munit:test>
+  <munit:test name="test-live-http-sync-completes">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="exp-catalog-sync-api-main" />
+      <munit:enable-flow-source value="exp-post-catalog-sync" />
+      <munit:enable-flow-source value="exp-get-catalog-run" />
+    </munit:enable-flow-sources>
+    <munit:execution>
+      <http:request config-ref="Live_HTTP_Client" method="POST" path="/api/catalog/sync">
+        <http:body>#[output application/json --- {requestedBy: "local-verification", fullSync: false, productCodes: ["CODEX-VERIFY-NO-MATCH"]}]</http:body>
+        <http:headers>#[{"Content-Type": "application/json"}]</http:headers>
+      </http:request>
+      <set-variable variableName="verifiedRunId" value="#[payload.runId]" />
+      <until-successful maxRetries="30" millisBetweenRetries="1000">
+        <http:request config-ref="Live_HTTP_Client" method="GET" path="#['/api/catalog/runs/' ++ vars.verifiedRunId]" />
+        <choice><when expression="#[payload.status == 'RUNNING']"><raise-error type="APP:RUN_PENDING" description="Synchronization is still running" /></when></choice>
+      </until-successful>
+      <logger level="INFO" message="#['[LIVE CHECK] HTTP sync run ' ++ vars.verifiedRunId ++ ' finished with status ' ++ payload.status]" />
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-equals actual="#[payload.status]" expected="#['COMPLETED']" />
+      <munit-tools:assert-equals actual="#[payload.failedCount]" expected="#[0]" />
+      <munit-tools:assert-equals actual="#[payload.recordsRead]" expected="#[0]" />
+    </munit:validation>
+  </munit:test>
+</mule>

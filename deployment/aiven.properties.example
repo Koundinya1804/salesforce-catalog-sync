@@ -1,0 +1,5 @@
+# Copy to aiven.properties and enter the values from your Aiven service.
+db.host=YOUR_AIVEN_MYSQL_HOST
+db.port=YOUR_AIVEN_MYSQL_PORT
+db.user=avnadmin
+db.name=defaultdb

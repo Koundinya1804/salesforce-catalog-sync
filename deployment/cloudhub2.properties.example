@@ -1,0 +1,8 @@
+# Enter these values on Runtime Manager's Properties tab.
+http.host=0.0.0.0
+vm.queueType=TRANSIENT
+file.rejectsPath=/tmp/catalog-sync/rejects
+smtp.enabled=false
+# Protect encryption.key using Runtime Manager's property protection.
+# Set it to the key matching your bundled secure-properties.yaml.
+# Leave CloudHub 2.0's reserved http.port property managed by the platform.

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools" xmlns:http="http://www.mulesoft.org/schema/mule/http" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+  <munit:config name="api-smoke-test-suite.xml" />
+  <http:request-config name="Smoke_HTTP_Client"><http:request-connection host="127.0.0.1" port="${http.port}" /></http:request-config>
+  <munit:test name="test-http-rejects-invalid-request">
+    <munit:enable-flow-sources><munit:enable-flow-source value="exp-catalog-sync-api-main" /><munit:enable-flow-source value="exp-post-catalog-sync" /><munit:enable-flow-source value="exp-get-catalog-run" /></munit:enable-flow-sources>
+    <munit:execution>
+      <http:request config-ref="Smoke_HTTP_Client" method="POST" path="/api/catalog/sync">
+        <http:body>#[output application/json --- {fullSync: "invalid"}]</http:body>
+        <http:headers>#[{"Content-Type": "application/json", "X-Correlation-ID": "smoke-invalid"}]</http:headers>
+        <http:response-validator><http:success-status-code-validator values="400" /></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-equals actual="#[attributes.statusCode]" expected="#[400]" />
+      <munit-tools:assert-equals actual="#[payload.error]" expected="#['BAD_REQUEST']" />
+      <munit-tools:assert-equals actual="#[attributes.headers.'x-correlation-id']" expected="#['smoke-invalid']" />
+    </munit:validation>
+  </munit:test>
+  <munit:test name="test-http-missing-run">
+    <munit:enable-flow-sources><munit:enable-flow-source value="exp-catalog-sync-api-main" /><munit:enable-flow-source value="exp-post-catalog-sync" /><munit:enable-flow-source value="exp-get-catalog-run" /></munit:enable-flow-sources>
+    <munit:behavior><munit-tools:mock-when processor="flow-ref">
+      <munit-tools:with-attributes><munit-tools:with-attribute attributeName="name" whereValue="system-db-get-sync-run-flow" /></munit-tools:with-attributes>
+      <munit-tools:then-return><munit-tools:payload value="#[[]]" /></munit-tools:then-return>
+    </munit-tools:mock-when></munit:behavior>
+    <munit:execution>
+      <http:request config-ref="Smoke_HTTP_Client" method="GET" path="/api/catalog/runs/RUN-SMOKE-MISSING">
+        <http:response-validator><http:success-status-code-validator values="404" /></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation><munit-tools:assert-equals actual="#[payload.error]" expected="#['NOT_FOUND']" /></munit:validation>
+  </munit:test>
+  <munit:test name="test-http-api-console">
+    <munit:enable-flow-sources><munit:enable-flow-source value="exp-catalog-sync-api-console" /></munit:enable-flow-sources>
+    <munit:execution><http:request config-ref="Smoke_HTTP_Client" method="GET" path="/console/" /></munit:execution>
+    <munit:validation><munit-tools:assert-equals actual="#[attributes.statusCode]" expected="#[200]" /></munit:validation>
+  </munit:test>
+  <munit:test name="test-http-accepts-valid-request">
+    <munit:enable-flow-sources><munit:enable-flow-source value="exp-catalog-sync-api-main" /><munit:enable-flow-source value="exp-post-catalog-sync" /><munit:enable-flow-source value="exp-get-catalog-run" /></munit:enable-flow-sources>
+    <munit:behavior><munit-tools:mock-when processor="flow-ref">
+      <munit-tools:with-attributes><munit-tools:with-attribute attributeName="name" whereValue="proc-catalog-sync-flow" /></munit-tools:with-attributes>
+      <munit-tools:then-return><munit-tools:variables>
+        <munit-tools:variable key="runId" value="#['RUN-SMOKE-ACCEPTED']" />
+        <munit-tools:variable key="triggerType" value="#['MANUAL_API']" />
+        <munit-tools:variable key="scope" value="#['PARTIAL']" />
+      </munit-tools:variables></munit-tools:then-return>
+    </munit-tools:mock-when></munit:behavior>
+    <munit:execution><http:request config-ref="Smoke_HTTP_Client" method="POST" path="/api/catalog/sync">
+      <http:body>#[output application/json --- {productCodes: ["PRD-SMOKE"], fullSync: false}]</http:body>
+      <http:headers>#[{"Content-Type": "application/json"}]</http:headers>
+    </http:request></munit:execution>
+    <munit:validation>
+      <munit-tools:assert-equals actual="#[attributes.statusCode]" expected="#[202]" />
+      <munit-tools:assert-equals actual="#[payload.runId]" expected="#['RUN-SMOKE-ACCEPTED']" />
+      <munit-tools:assert-equals actual="#[payload.status]" expected="#['RUNNING']" />
+    </munit:validation>
+  </munit:test>
+  <munit:test name="test-http-console-amf-model" description="The compressed AMF model must declare gzip so browsers can decode it">
+    <munit:enable-flow-sources><munit:enable-flow-source value="exp-catalog-sync-api-console" /></munit:enable-flow-sources>
+    <munit:execution>
+      <http:request config-ref="Smoke_HTTP_Client" method="GET" url="http://127.0.0.1:${http.port}/console/?amf" outputMimeType="application/octet-stream">
+        <http:headers>#[{"Accept-Encoding": "gzip"}]</http:headers>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-equals actual="#[attributes.statusCode]" expected="#[200]" />
+      <munit-tools:assert-equals actual="#[attributes.headers.'content-encoding']" expected="#['gzip']" message="Browser must receive the gzip header for the compressed model" />
+      <munit-tools:assert-equals actual="#[attributes.headers.'content-type' contains 'application/json']" expected="#[true]" message="AMF model must be served as JSON" />
+    </munit:validation>
+  </munit:test>
+</mule>
